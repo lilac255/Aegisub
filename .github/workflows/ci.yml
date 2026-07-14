@@ -89,6 +89,16 @@ jobs:
         with:
           python-version: '3.x'
 
+      - name: Get version from tag
+        id: get_version
+        shell: bash
+        run: |
+          if [[ $GITHUB_REF == refs/tags/* ]]; then
+            echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+          else
+            echo "VERSION=manual-build-$(date +%Y%m%d-%H%M%S)" >> $GITHUB_OUTPUT
+          fi
+
       - name: Setup Meson
         run: |
           python -m pip install --upgrade pip setuptools
@@ -107,7 +117,7 @@ jobs:
       - name: Install dependencies (Windows)
         if: matrix.config.os == 'windows-latest'
         run: |
-          choco install ninja innosetup
+          choco install ninja
 
           $moonscripturl = "https://github.com/leafo/moonscript/releases/download/v0.6.0/moonscript-v0.6.0-windows-x86_64.zip"
           mkdir moonscript
@@ -154,27 +164,11 @@ jobs:
           meson test -C build --verbose "gtest main"
 
       # Windows artifacts
-      - name: Generate Windows installer
-        if: matrix.config.os == 'windows-latest'
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          ${{ matrix.config.devenv }}
-          meson compile win-installer -C build
-
       - name: Generate Windows portable installer
         if: matrix.config.os == 'windows-latest'
         run: |
           ${{ matrix.config.devenv }}
           cd build && ninja win-portable
-
-      - name: Upload artifacts - win_installer
-        uses: actions/upload-artifact@v6
-        if: matrix.config.os == 'windows-latest'
-        with:
-          name: ${{ matrix.config.name }} - installer
-          path: build/Aegisub-*.exe
-          if-no-files-found: error
 
       - name: Upload artifacts - portable.zip
         uses: actions/upload-artifact@v6
@@ -182,6 +176,19 @@ jobs:
         with:
           name: ${{ matrix.config.name }} - portable
           path: build/aegisub-portable-64.zip
+
+      - name: Upload release assets - Windows portable
+        if: startsWith(github.ref, 'refs/tags/') && matrix.config.os == 'windows-latest'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.get_version.outputs.VERSION }}
+          name: Release ${{ steps.get_version.outputs.VERSION }}
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+          files: build/aegisub-portable-64.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       # macOS artifacts
       - name: Generate macOS installer
@@ -209,6 +216,19 @@ jobs:
           path: build/Aegisub-*.dmg
           if-no-files-found: error
 
+      - name: Upload release assets - macOS dmg
+        if: startsWith(github.ref, 'refs/tags/') && startsWith(matrix.config.os, 'macos-') && matrix.config.buildtype == 'release'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.get_version.outputs.VERSION }}
+          name: Release ${{ steps.get_version.outputs.VERSION }}
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+          files: build/Aegisub-*.dmg
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       # Tarball
       - name: Generate tarball
         if: matrix.config.os == 'ubuntu-latest' && matrix.config.buildtype == 'release'
@@ -230,3 +250,16 @@ jobs:
           name: Source Tarball
           path: build/meson-dist/*.tar.xz
           if-no-files-found: error
+
+      - name: Upload release assets - source tarball
+        if: startsWith(github.ref, 'refs/tags/') && matrix.config.os == 'ubuntu-latest' && matrix.config.buildtype == 'release'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.get_version.outputs.VERSION }}
+          name: Release ${{ steps.get_version.outputs.VERSION }}
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+          files: build/meson-dist/*.tar.xz
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

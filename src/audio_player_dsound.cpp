@@ -159,7 +159,7 @@ bool DirectSoundPlayer::FillBuffer(bool fill) {
 	HRESULT res;
 	void *ptr1, *ptr2;
 	unsigned long int size1, size2;
-	int bytesps = provider->GetBytesPerSample();
+	int bytesps = provider->GetChannels() * provider->GetBytesPerSample();
 
 	// To write length
 	int toWrite = 0;
@@ -253,7 +253,7 @@ void DirectSoundPlayer::Play(int64_t start,int64_t count) {
 	FillBuffer(true);
 
 	DWORD play_flag = 0;
-	if (count*provider->GetBytesPerSample() > bufSize) {
+	if (count*provider->GetChannels()*provider->GetBytesPerSample() > bufSize) {
 		// Start thread
 		thread = new DirectSoundPlayerThread(this);
 		thread->Create();

@@ -14,17 +14,18 @@
 //
 // Aegisub Project http://www.aegisub.org/
 
+#include <libaegisub/audio/provider.h>
 #include <libaegisub/fs.h>
 #include <memory>
 #include <vector>
 
 namespace agi {
-	class AudioProvider;
 	class BackgroundRunner;
 	class Path;
 }
 
 std::unique_ptr<agi::AudioProvider> GetAudioProvider(agi::fs::path const& filename,
                                                      agi::Path const& path_helper,
-                                                     agi::BackgroundRunner *br);
+                                                     agi::BackgroundRunner *br,
+                                                     agi::AudioProviderMode mode = agi::AudioProviderMode::Display);
 std::vector<std::string> GetAudioProviderNames();

@@ -255,7 +255,8 @@ void Project::DoLoadAudio(agi::fs::path const& path, bool quiet) {
 
 	try {
 		try {
-			audio_provider = GetAudioProvider(path, *context->path, progress);
+			audio_provider = GetAudioProvider(path, *context->path, progress, agi::AudioProviderMode::Display);
+			playback_audio_provider = GetAudioProvider(path, *context->path, progress, agi::AudioProviderMode::Playback);
 		}
 		catch (agi::UserCancelException const&) { return; }
 		catch (...) {
@@ -291,6 +292,7 @@ void Project::LoadAudio(agi::fs::path path) {
 
 void Project::CloseAudio() {
 	AnnounceAudioProviderModified(nullptr);
+	playback_audio_provider.reset();
 	audio_provider.reset();
 	SetPath(audio_file, "?audio", "", "");
 }

@@ -30,6 +30,7 @@ struct ProjectProperties;
 
 class Project : private agi::signal::ConnectionScope {
 	std::unique_ptr<agi::AudioProvider> audio_provider;
+	std::unique_ptr<agi::AudioProvider> playback_audio_provider;
 	std::unique_ptr<AsyncVideoProvider> video_provider;
 	agi::vfr::Framerate timecodes;
 	std::vector<int> keyframes;
@@ -75,6 +76,7 @@ public:
 	void LoadAudio(agi::fs::path path);
 	void CloseAudio();
 	agi::AudioProvider *AudioProvider() const { return audio_provider.get(); }
+	agi::AudioProvider *PlaybackAudioProvider() const { return playback_audio_provider.get(); }
 	agi::fs::path const& AudioName() const { return audio_file; }
 
 	void LoadVideo(agi::fs::path path);

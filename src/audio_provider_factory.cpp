@@ -56,7 +56,8 @@ std::vector<std::string> GetAudioProviderNames() {
 
 std::unique_ptr<agi::AudioProvider> GetAudioProvider(fs::path const& filename,
                                                      Path const& path_helper,
-                                                     BackgroundRunner *br) {
+                                                     BackgroundRunner *br,
+                                                     AudioProviderMode mode) {
 	auto preferred = OPT_GET("Audio/Provider")->GetString();
 	auto sorted = GetSorted(providers, preferred);
 
@@ -103,12 +104,16 @@ std::unique_ptr<agi::AudioProvider> GetAudioProvider(fs::path const& filename,
 	bool needs_cache = provider->NeedsCache();
 
 	// Give it a converter if needed
-	if (provider->GetBytesPerSample() != 2 || provider->GetSampleRate() < 32000 || provider->GetChannels() != 1)
-		provider = CreateConvertAudioProvider(std::move(provider));
+	if (provider->GetBytesPerSample() != 2
+	    || (mode == AudioProviderMode::Display && provider->GetSampleRate() < 32000)
+	    || (mode == AudioProviderMode::Display && provider->GetChannels() != 1))
+	{
+		provider = CreateConvertAudioProvider(std::move(provider), mode);
+	}
 
 	// Change provider to RAM/HD cache if needed
 	auto cache = OPT_GET("Audio/Cache/Type")->GetInt();
-	if (!cache || !needs_cache)
+	if (mode == AudioProviderMode::Playback || !cache || !needs_cache)
 		return CreateLockAudioProvider(std::move(provider));
 
 	// Convert to RAM
