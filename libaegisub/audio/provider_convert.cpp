@@ -178,7 +178,7 @@ public:
 }
 
 namespace agi {
-std::unique_ptr<AudioProvider> CreateConvertAudioProvider(std::unique_ptr<AudioProvider> provider) {
+std::unique_ptr<AudioProvider> CreateConvertAudioProvider(std::unique_ptr<AudioProvider> provider, AudioProviderMode mode) {
 	// Ensure 16-bit audio with proper endianness
 	if (provider->AreSamplesFloat()) {
 		LOG_D("audio_provider") << "Converting float to S16";
@@ -192,14 +192,14 @@ std::unique_ptr<AudioProvider> CreateConvertAudioProvider(std::unique_ptr<AudioP
 		provider = std::make_unique<BitdepthConvertAudioProvider<int16_t>>(std::move(provider));
 	}
 
-	// We currently only support mono audio
-	if (provider->GetChannels() != 1) {
+	// The display still uses mono audio
+	if (mode == AudioProviderMode::Display && provider->GetChannels() != 1) {
 		LOG_D("audio_provider") << "Downmixing to mono from " << provider->GetChannels() << " channels";
 		provider = std::make_unique<DownmixAudioProvider>(std::move(provider));
 	}
 
 	// Some players don't like low sample rate audio
-	while (provider->GetSampleRate() < 32000) {
+	while (mode == AudioProviderMode::Display && provider->GetSampleRate() < 32000) {
 		LOG_D("audio_provider") << "Doubling sample rate";
 		provider = std::make_unique<SampleDoublingAudioProvider>(std::move(provider));
 	}

@@ -99,7 +99,8 @@ void AudioController::OnAudioPlayerChanged()
 
 	try
 	{
-		player = AudioPlayerFactory::GetAudioPlayer(provider, context->parent);
+		auto playback_provider = context->project->PlaybackAudioProvider();
+		player = AudioPlayerFactory::GetAudioPlayer(playback_provider ? playback_provider : provider, context->parent);
 	}
 	catch (...)
 	{

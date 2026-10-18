@@ -99,6 +99,7 @@ class OpenALPlayer final : public AudioPlayer, wxTimer {
 
 	/// Fill count OpenAL buffers
 	void FillBuffers(ALsizei count);
+	ALenum GetFormat() const;
 
 	/// wxTimer override to periodically fill available buffers
 	void Notify() override;
@@ -234,6 +235,7 @@ void OpenALPlayer::Stop()
 void OpenALPlayer::FillBuffers(ALsizei count)
 {
 	InitContext();
+	ALenum format = GetFormat();
 	// Do the actual filling/queueing
 	for (count = mid(1, count, buffers_free); count > 0; --count) {
 		ALsizei fill_len = mid<ALsizei>(0, decode_buffer.size() / bpf, end_frame - cur_frame);
@@ -247,10 +249,20 @@ void OpenALPlayer::FillBuffers(ALsizei count)
 
 		cur_frame += fill_len;
 
-		alBufferData(buffers[buf_first_free], AL_FORMAT_MONO16, &decode_buffer[0], decode_buffer.size(), samplerate);
+		alBufferData(buffers[buf_first_free], format, &decode_buffer[0], decode_buffer.size(), samplerate);
 		alSourceQueueBuffers(source, 1, &buffers[buf_first_free]); // FIXME: collect buffer handles and queue all at once instead of one at a time?
 		buf_first_free = (buf_first_free + 1) % num_buffers;
 		--buffers_free;
+	}
+}
+
+ALenum OpenALPlayer::GetFormat() const
+{
+	switch (provider->GetChannels()) {
+		case 1: return AL_FORMAT_MONO16;
+		case 2: return AL_FORMAT_STEREO16;
+		default:
+			throw AudioPlayerOpenError("OpenAL player only supports mono or stereo audio");
 	}
 }
 
